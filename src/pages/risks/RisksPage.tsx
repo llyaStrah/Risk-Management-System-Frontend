@@ -97,7 +97,7 @@ export default function RisksPage() {
                 </tr>
               </thead>
               <tbody>
-                {risks?.content.map((risk) => (
+                {risks?.content?.map((risk) => (
                   <tr key={risk.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 font-medium">{risk.name}</td>
                     <td className="py-3 px-4">{risk.type}</td>
@@ -284,7 +284,7 @@ export default function RisksPage() {
                   required
                 >
                   <option value={0}>Select Portfolio</option>
-                  {portfolios?.content.map((p) => (
+                  {portfolios?.content?.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>

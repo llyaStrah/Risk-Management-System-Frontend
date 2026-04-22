@@ -77,7 +77,7 @@ export default function PortfoliosPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {portfolios?.content.map((portfolio) => (
+            {portfolios?.content?.map((portfolio) => (
               <div key={portfolio.id} className="card hover:shadow-lg transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-800">{portfolio.name}</h3>

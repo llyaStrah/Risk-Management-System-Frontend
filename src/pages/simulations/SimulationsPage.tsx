@@ -157,10 +157,10 @@ export default function SimulationsPage() {
                   <th className="text-left py-3 px-4 w-12">
                     <input 
                       type="checkbox" 
-                      checked={selectedForCompare.length === simulations?.content.length}
+                      checked={selectedForCompare.length === simulations?.content?.length}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedForCompare(simulations?.content.map(s => s.id) || [])
+                          setSelectedForCompare(simulations?.content?.map(s => s.id) || [])
                         } else {
                           setSelectedForCompare([])
                         }
@@ -175,7 +175,7 @@ export default function SimulationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {simulations?.content.map((simulation) => (
+                {simulations?.content?.map((simulation) => (
                   <tr key={simulation.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">
                       <input 
@@ -272,7 +272,7 @@ export default function SimulationsPage() {
                   required
                 >
                   <option value="">Select Portfolio</option>
-                  {portfolios?.content.map((p) => (
+                  {portfolios?.content?.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>

@@ -11,6 +11,8 @@ import PortfolioDetailsPage from './pages/portfolios/PortfolioDetailsPage'
 import SimulationsPage from './pages/simulations/SimulationsPage'
 import SimulationDetailsPage from './pages/simulations/SimulationDetailsPage'
 import AssetsPage from './pages/assets/AssetsPage'
+import ProfilePage from './pages/profile/ProfilePage'
+import UsersManagementPage from './pages/admin/UsersManagementPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -31,6 +33,8 @@ function App() {
           <Route path="/simulations" element={isAuthenticated ? <SimulationsPage /> : <Navigate to="/login" />} />
           <Route path="/simulations/:id" element={isAuthenticated ? <SimulationDetailsPage /> : <Navigate to="/login" />} />
           <Route path="/assets" element={isAuthenticated ? <AssetsPage /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isAuthenticated ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="/admin/users" element={isAuthenticated ? <UsersManagementPage /> : <Navigate to="/login" />} />
         </Route>
       </Routes>
     </BrowserRouter>

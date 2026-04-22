@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { decodeJWT } from '../../utils/jwt'
 
 export default function OAuth2RedirectPage() {
   const navigate = useNavigate()
@@ -11,13 +12,40 @@ export default function OAuth2RedirectPage() {
     const token = params.get('token')
 
     if (token) {
-      // Save token to store and localStorage
-      setAuth(token, null) // User info will be fetched by the app
+      // Декодируем токен для получения информации о пользователе
+      const decoded = decodeJWT(token)
       
-      // Redirect to dashboard
-      navigate('/dashboard', { replace: true })
+      console.log('Decoded OAuth2 token:', decoded)
+      
+      if (decoded) {
+        // OAuth2 провайдеры могут возвращать разные поля для имени
+        const username = decoded.name || 
+                        decoded.preferred_username || 
+                        decoded.given_name || 
+                        decoded.email?.split('@')[0] || 
+                        decoded.username ||
+                        'User'
+        
+        console.log('Extracted username:', username)
+        console.log('Available fields:', Object.keys(decoded))
+        
+        // Сохраняем токен и информацию о пользователе
+        setAuth({
+          accessToken: token,
+          refreshToken: token, // OAuth2 может не возвращать refresh token
+          username: username,
+          email: decoded.email || '',
+          roles: decoded.roles || decoded.authorities || [],
+        })
+        
+        // Перенаправляем на главную страницу
+        navigate('/', { replace: true })
+      } else {
+        console.error('Failed to decode OAuth2 token')
+        navigate('/login', { replace: true })
+      }
     } else {
-      // No token, redirect to login
+      // Нет токена, перенаправляем на логин
       navigate('/login', { replace: true })
     }
   }, [navigate, setAuth])

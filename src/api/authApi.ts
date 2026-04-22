@@ -16,12 +16,19 @@ export const authApi = {
     await apiClient.post('/auth/logout')
   },
 
-  // OAuth2 URLs
+  me: async (): Promise<{ username: string; email: string; roles: string[] }> => {
+    const response = await apiClient.get('/auth/me')
+    return response.data
+  },
+
+  // OAuth2 URLs - use absolute URLs without /api/v1 prefix
   getGoogleOAuthUrl: (): string => {
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/oauth2/authorization/google`
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080'
+    return `${baseUrl}/oauth2/authorization/google`
   },
 
   getGitHubOAuthUrl: (): string => {
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/oauth2/authorization/github`
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080'
+    return `${baseUrl}/oauth2/authorization/github`
   },
 }

@@ -1,10 +1,19 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { LayoutDashboard, TrendingUp, Briefcase, Activity, Package, LogOut } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { usersApi } from '../api/usersApi'
+import { LayoutDashboard, TrendingUp, Briefcase, Activity, Package, LogOut, User, Users } from 'lucide-react'
 
 export default function Layout() {
   const { username, clearAuth } = useAuthStore()
   const navigate = useNavigate()
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: usersApi.getCurrentUser,
+  })
+
+  const isAdmin = currentUser?.roles.includes('ROLE_ADMIN')
 
   const handleLogout = () => {
     clearAuth()
@@ -38,13 +47,26 @@ export default function Layout() {
             <Package className="w-5 h-5 mr-3" />
             Assets
           </Link>
+          <div className="border-t my-4"></div>
+          <Link to="/profile" className="flex items-center px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600">
+            <User className="w-5 h-5 mr-3" />
+            Profile
+          </Link>
+          {isAdmin && (
+            <Link to="/admin/users" className="flex items-center px-6 py-3 text-gray-700 hover:bg-primary-50 hover:text-primary-600">
+              <Users className="w-5 h-5 mr-3" />
+              Users (Admin)
+            </Link>
+          )}
         </nav>
       </aside>
 
       <div className="flex-1 flex flex-col">
         <header className="bg-white shadow-sm">
           <div className="flex items-center justify-between px-8 py-4">
-            <h2 className="text-xl font-semibold text-gray-800">Welcome, {username}</h2>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Welcome, {username || 'User'}
+            </h2>
             <button
               onClick={handleLogout}
               className="flex items-center px-4 py-2 text-gray-700 hover:text-red-600"

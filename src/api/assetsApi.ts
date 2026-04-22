@@ -28,6 +28,11 @@ export const assetApi = {
     await apiClient.delete(`/assets/${id}`)
   },
 
+  updatePrice: async (id: number): Promise<Asset> => {
+    const response = await apiClient.post<Asset>(`/assets/${id}/update-price`)
+    return response.data
+  },
+
   updatePrices: async (portfolioId: number): Promise<Asset[]> => {
     const response = await apiClient.post<Asset[]>(`/assets/portfolio/${portfolioId}/update-prices`)
     return response.data

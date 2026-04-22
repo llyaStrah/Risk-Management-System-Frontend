@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { decodeJWT } from '../utils/jwt'
 
 interface AuthState {
   accessToken: string | null
@@ -28,15 +29,26 @@ export const useAuthStore = create<AuthState>()(
       email: null,
       roles: [],
       isAuthenticated: false,
-      setAuth: (data) =>
+      setAuth: (data) => {
+        // Проверяем наличие accessToken
+        if (!data.accessToken) {
+          console.error('No access token provided')
+          return
+        }
+        
+        // Декодируем JWT токен для получения username с правильной кодировкой
+        const decoded = decodeJWT(data.accessToken)
+        const username = decoded?.sub || data.username
+        
         set({
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
-          username: data.username,
+          username: username,
           email: data.email,
           roles: data.roles,
           isAuthenticated: true,
-        }),
+        })
+      },
       clearAuth: () =>
         set({
           accessToken: null,

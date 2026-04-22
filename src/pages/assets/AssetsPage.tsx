@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { assetsApi } from '../../api/assetsApi'
 import { portfoliosApi } from '../../api/portfoliosApi'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { CreateAssetRequest } from '../../types'
 
 export default function AssetsPage() {
@@ -40,6 +40,13 @@ export default function AssetsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: assetsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] })
+    },
+  })
+
+  const updatePriceMutation = useMutation({
+    mutationFn: assetsApi.updatePrice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
     },
@@ -89,7 +96,7 @@ export default function AssetsPage() {
                 </tr>
               </thead>
               <tbody>
-                {assets?.content.map((asset) => (
+                {assets?.content?.map((asset) => (
                   <tr key={asset.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4 font-bold text-primary-600">{asset.ticker}</td>
                     <td className="py-3 px-4">{asset.name}</td>
@@ -100,12 +107,23 @@ export default function AssetsPage() {
                       ${(asset.quantity * asset.currentPrice).toLocaleString()}
                     </td>
                     <td className="py-3 px-4">
-                      <button
-                        onClick={() => deleteMutation.mutate(asset.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => updatePriceMutation.mutate(asset.id)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Update price from market"
+                          disabled={updatePriceMutation.isPending}
+                        >
+                          <RefreshCw className={`w-5 h-5 ${updatePriceMutation.isPending ? 'animate-spin' : ''}`} />
+                        </button>
+                        <button
+                          onClick={() => deleteMutation.mutate(asset.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete asset"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -209,7 +227,7 @@ export default function AssetsPage() {
                   required
                 >
                   <option value={0}>Select Portfolio</option>
-                  {portfolios?.content.map((p) => (
+                  {portfolios?.content?.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
