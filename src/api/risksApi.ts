@@ -39,7 +39,20 @@ export const riskApi = {
   },
 
   generateReport: async (portfolioId: number): Promise<void> => {
-    await apiClient.post(`/risks/portfolio/${portfolioId}/report`)
+    const response = await apiClient.post(`/risks/portfolio/${portfolioId}/report`, null, {
+      responseType: 'blob',
+    })
+    
+    // Create download link
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `risk-report-portfolio-${portfolioId}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
   },
 }
 

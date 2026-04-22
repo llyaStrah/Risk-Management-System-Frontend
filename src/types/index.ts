@@ -189,3 +189,33 @@ export interface Page<T> {
   size: number
   number: number
 }
+
+export interface OptimizationResult {
+  portfolioId: number
+  strategy: string
+  currentWeights: Record<number, number>
+  optimizedWeights: Record<number, number>
+  expectedReturn: number
+  expectedRisk: number
+  sharpeRatio: number
+}
+
+export interface RebalancingPlan {
+  portfolioId: number
+  currentWeights: Record<number, number>
+  targetWeights: Record<number, number>
+  deviations: Record<number, number>
+  transactions: Transaction[]
+  transactionCosts: number
+  taxImpact: number
+  totalValue: number
+}
+
+export interface Transaction {
+  assetId: number
+  ticker: string
+  type: 'BUY' | 'SELL'
+  quantity: number
+  price: number
+  value: number
+}

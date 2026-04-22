@@ -11,9 +11,10 @@ export default function Layout() {
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: usersApi.getCurrentUser,
+    retry: false,
   })
 
-  const isAdmin = currentUser?.roles.includes('ROLE_ADMIN')
+  const isAdmin = currentUser?.roles?.includes('ROLE_ADMIN') || false
 
   const handleLogout = () => {
     clearAuth()

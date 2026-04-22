@@ -5,13 +5,18 @@ import { portfolioApi } from '../../api/portfoliosApi'
 import { riskApi } from '../../api/risksApi'
 import { assetApi } from '../../api/assetsApi'
 import { analyticsApi } from '../../api/analyticsApi'
-import { ArrowLeft, TrendingUp, BarChart3, PieChart, RefreshCw, FileText, Zap } from 'lucide-react'
+import { OptimizationResult, RebalancingPlan, Asset } from '../../types'
+import { ArrowLeft, TrendingUp, BarChart3, PieChart, RefreshCw, FileText, Zap, X } from 'lucide-react'
 
 export default function PortfolioDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'diversification' | 'risks' | 'analytics'>('overview')
+  const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null)
+  const [rebalancingPlan, setRebalancingPlan] = useState<RebalancingPlan | null>(null)
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false)
+  const [showRebalanceModal, setShowRebalanceModal] = useState(false)
 
   const { data: portfolio, isLoading, error } = useQuery({
     queryKey: ['portfolio', id],
@@ -19,10 +24,16 @@ export default function PortfolioDetailsPage() {
     enabled: !!id,
   })
 
+  const { data: assets } = useQuery({
+    queryKey: ['assets', id],
+    queryFn: () => assetApi.getByPortfolio(Number(id)),
+    enabled: !!id,
+  })
+
   const { data: performance } = useQuery({
     queryKey: ['portfolio-performance', id],
     queryFn: () => portfolioApi.getPerformance(Number(id)),
-    enabled: !!id && activeTab === 'performance',
+    enabled: !!id,
   })
 
   const { data: diversification } = useQuery({
@@ -64,10 +75,10 @@ export default function PortfolioDetailsPage() {
   }
 
   const optimizeMutation = useMutation({
-    mutationFn: () => portfolioApi.optimize(Number(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['portfolio', id] })
-      alert('Portfolio optimized successfully!')
+    mutationFn: (strategy: string) => portfolioApi.optimize(Number(id), strategy),
+    onSuccess: (result) => {
+      setOptimizationResult(result)
+      setShowOptimizeModal(true)
     },
     onError: (error: any) => {
       alert(`Error: ${error.response?.data?.message || 'Failed to optimize portfolio'}`)
@@ -75,15 +86,32 @@ export default function PortfolioDetailsPage() {
   })
 
   const rebalanceMutation = useMutation({
-    mutationFn: () => portfolioApi.rebalance(Number(id)),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['portfolio', id] })
-      alert('Portfolio rebalanced successfully!')
+    mutationFn: (targetWeights: Record<number, number>) => portfolioApi.rebalance(Number(id), targetWeights),
+    onSuccess: (plan) => {
+      setRebalancingPlan(plan)
+      setShowRebalanceModal(true)
     },
     onError: (error: any) => {
       alert(`Error: ${error.response?.data?.message || 'Failed to rebalance portfolio'}`)
     },
   })
+
+  const handleOptimize = () => {
+    optimizeMutation.mutate('MAXIMIZE_SHARPE_RATIO')
+  }
+
+  const handleRebalance = () => {
+    if (!optimizationResult) {
+      alert('Please run optimization first to get target weights')
+      return
+    }
+    rebalanceMutation.mutate(optimizationResult.optimizedWeights)
+  }
+
+  const getAssetName = (assetId: number): string => {
+    const asset = assets?.find((a: Asset) => a.id === assetId)
+    return asset ? `${asset.ticker} (${asset.name})` : `Asset ${assetId}`
+  }
 
   const updatePricesMutation = useMutation({
     mutationFn: () => assetApi.updatePrices(Number(id)),
@@ -97,9 +125,9 @@ export default function PortfolioDetailsPage() {
   })
 
   const generateReportMutation = useMutation({
-    mutationFn: () => riskApi.generateReport(Number(id)),
+    mutationFn: () => portfolioApi.generateReport(Number(id)),
     onSuccess: () => {
-      alert('Risk report generated successfully!')
+      alert('Comprehensive portfolio report PDF downloaded successfully!')
     },
     onError: (error: any) => {
       alert(`Error: ${error.response?.data?.message || 'Failed to generate report'}`)
@@ -129,6 +157,15 @@ export default function PortfolioDetailsPage() {
           <h1 className="text-3xl font-bold text-gray-800">{portfolio.name}</h1>
           <div className="flex gap-2">
             <button
+              onClick={() => generateReportMutation.mutate()}
+              disabled={generateReportMutation.isPending}
+              className="btn btn-primary flex items-center"
+              title="Generate Comprehensive Report (PDF)"
+            >
+              <FileText className={`w-4 h-4 mr-2 ${generateReportMutation.isPending ? 'animate-pulse' : ''}`} />
+              Generate Report
+            </button>
+            <button
               onClick={() => updatePricesMutation.mutate()}
               disabled={updatePricesMutation.isPending}
               className="btn btn-secondary flex items-center"
@@ -138,7 +175,7 @@ export default function PortfolioDetailsPage() {
               Update Prices
             </button>
             <button
-              onClick={() => optimizeMutation.mutate()}
+              onClick={handleOptimize}
               disabled={optimizeMutation.isPending}
               className="btn btn-primary flex items-center"
               title="Optimize Portfolio (UC-4)"
@@ -147,17 +184,17 @@ export default function PortfolioDetailsPage() {
               Optimize
             </button>
             <button
-              onClick={() => rebalanceMutation.mutate()}
-              disabled={rebalanceMutation.isPending}
+              onClick={handleRebalance}
+              disabled={rebalanceMutation.isPending || !optimizationResult}
               className="btn btn-primary flex items-center"
-              title="Rebalance Portfolio (UC-5)"
+              title="Rebalance Portfolio (UC-5) - Run Optimize first"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Rebalance
             </button>
           </div>
         </div>
-        <p className="text-gray-600">Total Value: ${portfolio.totalValue?.toLocaleString() || '0'}</p>
+        <p className="text-gray-600">Total Value: ${(performance?.currentValue || portfolio.totalValue || 0).toLocaleString()}</p>
       </div>
 
       <div className="mb-6">
@@ -288,16 +325,16 @@ export default function PortfolioDetailsPage() {
             <div className="card">
               <h3 className="text-lg font-bold mb-4">Asset Contributions</h3>
               <div className="space-y-2">
-                {Object.entries(performance.assetContributions).map(([assetId, contribution]) => (
-                  <div key={assetId} className="flex items-center">
-                    <span className="w-32 text-gray-600">Asset {assetId}:</span>
+                {Object.entries(performance.assetContributions).map(([assetName, contribution]) => (
+                  <div key={assetName} className="flex items-center">
+                    <span className="w-32 text-gray-600">{assetName}:</span>
                     <div className="flex-1 bg-gray-200 rounded-full h-4 mr-2">
                       <div
                         className="bg-primary-600 h-4 rounded-full"
-                        style={{ width: `${Math.abs(contribution) * 100}%` }}
+                        style={{ width: `${Math.min(Math.abs(contribution), 100)}%` }}
                       />
                     </div>
-                    <span className="font-medium">{(contribution * 100).toFixed(2)}%</span>
+                    <span className="font-medium">{contribution.toFixed(2)}%</span>
                   </div>
                 ))}
               </div>
@@ -376,18 +413,7 @@ export default function PortfolioDetailsPage() {
       {activeTab === 'risks' && (
         <div className="space-y-6">
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">Risk Assessment (UC-2)</h3>
-              <button
-                onClick={() => generateReportMutation.mutate()}
-                disabled={generateReportMutation.isPending}
-                className="btn btn-secondary flex items-center"
-                title="Generate Risk Report (UC-3)"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Generate Report
-              </button>
-            </div>
+            <h3 className="text-lg font-bold mb-4">Risk Assessment (UC-2)</h3>
 
             {riskLoading ? (
               <p className="text-gray-600">Loading risk assessment...</p>
@@ -801,6 +827,180 @@ export default function PortfolioDetailsPage() {
             ) : (
               <p className="text-gray-600">No recommendations available.</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Optimization Result Modal */}
+      {showOptimizeModal && optimizationResult && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Portfolio Optimization Results</h2>
+                <button onClick={() => setShowOptimizeModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="card bg-blue-50">
+                    <p className="text-sm text-gray-600 mb-1">Strategy</p>
+                    <p className="text-lg font-bold">{optimizationResult.strategy.replace('_', ' ')}</p>
+                  </div>
+                  <div className="card bg-green-50">
+                    <p className="text-sm text-gray-600 mb-1">Expected Return</p>
+                    <p className="text-lg font-bold text-green-600">{optimizationResult.expectedReturn.toFixed(2)}%</p>
+                  </div>
+                  <div className="card bg-orange-50">
+                    <p className="text-sm text-gray-600 mb-1">Expected Risk</p>
+                    <p className="text-lg font-bold text-orange-600">{(optimizationResult.expectedRisk * 100).toFixed(2)}%</p>
+                  </div>
+                </div>
+
+                <div className="card bg-purple-50">
+                  <p className="text-sm text-gray-600 mb-1">Sharpe Ratio</p>
+                  <p className="text-3xl font-bold text-purple-600">{optimizationResult.sharpeRatio.toFixed(4)}</p>
+                  <p className="text-xs text-gray-500 mt-1">Higher is better (risk-adjusted return)</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="card">
+                    <h3 className="font-bold mb-4">Current Weights</h3>
+                    <div className="space-y-2">
+                      {Object.entries(optimizationResult.currentWeights).map(([assetId, weight]) => (
+                        <div key={assetId} className="flex items-center">
+                          <span className="w-40 text-sm text-gray-600 truncate">{getAssetName(Number(assetId))}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-4 mr-2">
+                            <div className="bg-blue-600 h-4 rounded-full" style={{ width: `${weight * 100}%` }} />
+                          </div>
+                          <span className="font-medium w-16 text-right">{(weight * 100).toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <h3 className="font-bold mb-4">Optimized Weights</h3>
+                    <div className="space-y-2">
+                      {Object.entries(optimizationResult.optimizedWeights).map(([assetId, weight]) => (
+                        <div key={assetId} className="flex items-center">
+                          <span className="w-40 text-sm text-gray-600 truncate">{getAssetName(Number(assetId))}</span>
+                          <div className="flex-1 bg-gray-200 rounded-full h-4 mr-2">
+                            <div className="bg-green-600 h-4 rounded-full" style={{ width: `${weight * 100}%` }} />
+                          </div>
+                          <span className="font-medium w-16 text-right">{(weight * 100).toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setShowOptimizeModal(false)} className="btn btn-secondary">
+                    Close
+                  </button>
+                  <button onClick={handleRebalance} className="btn btn-primary">
+                    Apply Rebalancing
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rebalancing Plan Modal */}
+      {showRebalanceModal && rebalancingPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Rebalancing Plan</h2>
+                <button onClick={() => setShowRebalanceModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="card bg-blue-50">
+                    <p className="text-sm text-gray-600 mb-1">Total Value</p>
+                    <p className="text-lg font-bold">${rebalancingPlan.totalValue.toLocaleString()}</p>
+                  </div>
+                  <div className="card bg-purple-50">
+                    <p className="text-sm text-gray-600 mb-1">Transactions</p>
+                    <p className="text-lg font-bold">{rebalancingPlan.transactions.length}</p>
+                  </div>
+                  <div className="card bg-orange-50">
+                    <p className="text-sm text-gray-600 mb-1">Transaction Costs</p>
+                    <p className="text-lg font-bold text-orange-600">${rebalancingPlan.transactionCosts.toFixed(2)}</p>
+                  </div>
+                  <div className="card bg-red-50">
+                    <p className="text-sm text-gray-600 mb-1">Tax Impact</p>
+                    <p className="text-lg font-bold text-red-600">${rebalancingPlan.taxImpact.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h3 className="font-bold mb-4">Required Transactions</h3>
+                  {rebalancingPlan.transactions.length === 0 ? (
+                    <p className="text-gray-600">No transactions needed - portfolio is already balanced</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {rebalancingPlan.transactions.map((transaction, idx) => (
+                        <div key={idx} className={`p-4 rounded border-l-4 ${
+                          transaction.type === 'BUY' ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'
+                        }`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className={`px-3 py-1 rounded font-bold text-sm ${
+                                transaction.type === 'BUY' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                              }`}>
+                                {transaction.type}
+                              </span>
+                              <span className="font-bold text-lg">{transaction.ticker}</span>
+                            </div>
+                            <span className="text-2xl font-bold">${transaction.value.toFixed(2)}</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Quantity:</span>
+                              <span className="font-medium ml-2">{transaction.quantity.toFixed(4)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Price:</span>
+                              <span className="font-medium ml-2">${transaction.price.toFixed(2)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Total Value:</span>
+                              <span className="font-medium ml-2">${transaction.value.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="card bg-yellow-50 border-l-4 border-yellow-500">
+                  <h4 className="font-bold mb-3">⚠️ Important Notes</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• Transaction costs: 0.1% of transaction value</li>
+                    <li>• Tax impact: 15% on all sales (capital gains tax)</li>
+                    <li>• Total cost: ${(rebalancingPlan.transactionCosts + rebalancingPlan.taxImpact).toFixed(2)}</li>
+                    <li>• This is a simulation - no actual trades will be executed</li>
+                  </ul>
+                </div>
+
+                <div className="flex justify-end">
+                  <button onClick={() => setShowRebalanceModal(false)} className="btn btn-primary">
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

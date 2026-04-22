@@ -14,6 +14,11 @@ export const assetApi = {
     return response.data
   },
 
+  getByPortfolio: async (portfolioId: number): Promise<Asset[]> => {
+    const response = await apiClient.get<Asset[]>(`/assets/portfolio/${portfolioId}`)
+    return response.data
+  },
+
   create: async (data: CreateAssetRequest): Promise<Asset> => {
     const response = await apiClient.post<Asset>('/assets', data)
     return response.data
