@@ -357,7 +357,7 @@ export default function SimulationsPage() {
       {comparisonResult && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">Simulation Comparison Results (UC-9)</h2>
+            <h2 className="text-2xl font-bold mb-6">Simulation Comparison Results</h2>
             
             {comparisonResult.metricsComparison && (
               <div className="space-y-6">

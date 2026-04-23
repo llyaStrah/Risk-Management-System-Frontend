@@ -157,6 +157,15 @@ export default function PortfolioDetailsPage() {
           <h1 className="text-3xl font-bold text-gray-800">{portfolio.name}</h1>
           <div className="flex gap-2">
             <button
+              onClick={() => updatePricesMutation.mutate()}
+              disabled={updatePricesMutation.isPending}
+              className="btn btn-secondary flex items-center"
+              title="Update Asset Prices"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${updatePricesMutation.isPending ? 'animate-spin' : ''}`} />
+              Update Prices
+            </button>
+            <button
               onClick={() => generateReportMutation.mutate()}
               disabled={generateReportMutation.isPending}
               className="btn btn-primary flex items-center"
@@ -166,19 +175,10 @@ export default function PortfolioDetailsPage() {
               Generate Report
             </button>
             <button
-              onClick={() => updatePricesMutation.mutate()}
-              disabled={updatePricesMutation.isPending}
-              className="btn btn-secondary flex items-center"
-              title="Update Asset Prices (UC-12)"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${updatePricesMutation.isPending ? 'animate-spin' : ''}`} />
-              Update Prices
-            </button>
-            <button
               onClick={handleOptimize}
               disabled={optimizeMutation.isPending}
               className="btn btn-primary flex items-center"
-              title="Optimize Portfolio (UC-4)"
+              title="Optimize Portfolio"
             >
               <Zap className="w-4 h-4 mr-2" />
               Optimize
@@ -187,7 +187,7 @@ export default function PortfolioDetailsPage() {
               onClick={handleRebalance}
               disabled={rebalanceMutation.isPending || !optimizationResult}
               className="btn btn-primary flex items-center"
-              title="Rebalance Portfolio (UC-5) - Run Optimize first"
+              title="Rebalance Portfolio - Run Optimize first"
             >
               <BarChart3 className="w-4 h-4 mr-2" />
               Rebalance
@@ -209,25 +209,25 @@ export default function PortfolioDetailsPage() {
             onClick={() => setActiveTab('performance')}
             className={`px-4 py-2 font-medium ${activeTab === 'performance' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-600'}`}
           >
-            Performance (UC-6)
+            Performance
           </button>
           <button
             onClick={() => setActiveTab('diversification')}
             className={`px-4 py-2 font-medium ${activeTab === 'diversification' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-600'}`}
           >
-            Diversification (UC-7)
+            Diversification
           </button>
           <button
             onClick={() => setActiveTab('risks')}
             className={`px-4 py-2 font-medium ${activeTab === 'risks' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-600'}`}
           >
-            Risks (UC-2)
+            Risks
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
             className={`px-4 py-2 font-medium ${activeTab === 'analytics' ? 'border-b-2 border-primary-600 text-primary-600' : 'text-gray-600'}`}
           >
-            Analytics (UC-14, UC-15)
+            Analytics
           </button>
         </div>
       </div>
@@ -413,7 +413,7 @@ export default function PortfolioDetailsPage() {
       {activeTab === 'risks' && (
         <div className="space-y-6">
           <div className="card">
-            <h3 className="text-lg font-bold mb-4">Risk Assessment (UC-2)</h3>
+            <h3 className="text-lg font-bold mb-4">Risk Assessment</h3>
 
             {riskLoading ? (
               <p className="text-gray-600">Loading risk assessment...</p>
@@ -564,7 +564,7 @@ export default function PortfolioDetailsPage() {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           <div className="card">
-            <h3 className="text-lg font-bold mb-4">Market Trends Prediction (UC-14)</h3>
+            <h3 className="text-lg font-bold mb-4">Market Trends Prediction</h3>
             {trendsLoading ? (
               <p className="text-gray-600">Loading trends...</p>
             ) : trends ? (
@@ -679,7 +679,7 @@ export default function PortfolioDetailsPage() {
           </div>
 
           <div className="card">
-            <h3 className="text-lg font-bold mb-4">Investment Recommendations (UC-15)</h3>
+            <h3 className="text-lg font-bold mb-4">Investment Recommendations</h3>
             {recommendationsLoading ? (
               <p className="text-gray-600">Loading recommendations...</p>
             ) : recommendations ? (
